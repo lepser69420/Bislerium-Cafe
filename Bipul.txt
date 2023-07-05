@@ -1,0 +1,18 @@
+
+  COURSEWORK COSTUME RENTAL
+             DATE:2022-08-26
+             TIME:09:28 AM
+             Name:Bipul
+             sn  item	no     price    total
+             1. cop suit	0	15.0	0.0
+             2. suit		5	14.5	72.5
+             3. fairy dress	0	24	0.0
+             total				72.5
+
+
+you are kindly informed to return the costume
+before 09:28 AM at 2022-08-31.
+After that you have to pay 5% of the total
+amount as fine perday.
+
+Thankyou! visit again.
