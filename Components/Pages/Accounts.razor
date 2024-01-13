@@ -1,0 +1,70 @@
+﻿@page "/accounts"
+@using System.ComponentModel.DataAnnotations;
+@using CafeCoffee.Components.Data;
+
+<h2>Accounts</h2>
+
+<div class="container">
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-success" role="alert">
+            @errorMessage
+        </div>
+    }
+
+    <form class="form-check-inline">
+        <h4>Admin</h4>
+        <div class="d-flex mb-2">
+            <div class="form-group me-2">
+                <label for="adminName">Name</label>
+                <InputText type="text" @bind-Value="AdminName" class="form-control" id="adminName" />
+            </div>
+            <div class="form-group">
+                <label for="adminPass">Password</label>
+                <InputText type="text" @bind-Value="AdminPassword" class="form-control" id="adminPass" />
+            </div>
+        </div>
+        <h4>Staff</h4>
+        <div class="d-flex mb-2">
+            <div class="form-group me-2">
+                <label for="staffName">Name</label>
+                <InputText type="text" @bind-Value="StaffName" class="form-control" id="staffName" />
+            </div>
+            <div class="form-group">
+                <label for="staffPass">Password</label>
+                <InputText type="text" @bind-Value="StaffPassword" class="form-control" id="staffPass" />
+            </div>
+        </div>
+        <button type="button" @onclick="Update" class="btn btn-primary mb-2">Update</button>
+    </form>
+</div>
+
+@code {
+    [Required(ErrorMessage = "Admin Name is required!")]
+    private string AdminName { get; set; }
+    [Required(ErrorMessage = "Admin Password is required!")]
+    private string AdminPassword { get; set; }
+    [Required(ErrorMessage = "Staff Name is required!")]
+    private string StaffName { get; set; }
+    [Required(ErrorMessage = "Staff Password is required!")]
+    private string StaffPassword { get; set; }
+    private string errorMessage { get; set; }
+    DatabaseContext db;
+
+    protected override void OnInitialized()
+    {
+        // Load accounts info from database context class
+        db = DatabaseContext.getInstance();
+        AdminName = db.GetUsers()[0].UserName;
+        AdminPassword = db.GetUsers()[0].UserPassword;
+        StaffName = db.GetUsers()[1].UserName;
+        StaffPassword = db.GetUsers()[1].UserPassword;
+    }
+
+    private void Update()
+    {
+        // Call for update info
+        db.UpdateUsers(AdminName, AdminPassword, StaffName, StaffPassword);
+        errorMessage = "Updated!";
+    }
+}

@@ -1,0 +1,238 @@
+﻿@page "/home/{userType:int}"
+@using System.ComponentModel.DataAnnotations;
+@using CafeCoffee.Components.Data;
+
+
+
+<h1>Welcome</h1>
+
+<div class="container">
+    <div class="row">
+        @if (status == 0)
+        {
+            <h3>Take Order</h3>
+
+            <div class="col flex-grow-1">
+                <EditForm Model="@orderModel" OnValidSubmit="@PlaceOrder">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div class="form-group">
+                        <label for="userName">Customer Name</label>
+                        <InputText type="text" @bind-Value="orderModel.CustomerName" class="form-control" id="userName" />
+                    </div>
+
+                    <div class="form-group mt-2">
+                        <label for="inputState">Coffee</label>
+                        <select id="inputState" class="form-control" @bind="orderModel.SelectedCoffee">
+                            @foreach (var opt in coffeeOpt)
+                            {
+                                <option value="@opt.Id">@opt.ItemName  -  $@opt.ItemPrice </option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="form-group mt-2">
+                        <label for="inputState">Addons</label>
+                        <div class="d-flex">
+                            <select id="inputState" class="form-control me-2" @bind="@selectedAddon">
+                                <option selected>Choose...</option>
+                                @foreach (var opt in addonsOpt)
+                                {
+                                    <option value="@opt.Id">@opt.ItemName  -  $@opt.ItemPrice </option>
+                                }
+                            </select>
+                            <button type="button" @onclick="AddAddon" class="form-control btn btn-primary">Add Addon</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-success mt-2">Continue to Payment</button>
+                </EditForm>
+            </div>
+        }
+        else
+        {
+            <h3>Payment</h3>
+
+            <div class="col flex-grow-1">
+                <EditForm Model="@orderModel" OnValidSubmit="@CompleteOrder">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div class="form-group">
+                        <label for="phoneNumber">Phone Number</label>
+                        <InputText type="text" @bind-Value="orderModel.PhoneNumber" class="form-control" id="phoneNumber" />
+                    </div>
+
+                    <h5 class="mt-4 text-secondary"> SubTotal: $@getTotal() </h5>
+                    <h5 class="text-secondary"> Discount: $@getDiscount() </h5>
+                    <hr />
+                    <h3 class="font-weight-bold"> Total: $@(getTotal() - getDiscount()) </h3>
+
+                    <button type="submit" class="btn btn-success mt-2">Complete Order</button>
+                </EditForm>
+            </div>
+
+        }
+        <div class="col">
+            <div class="card" style="width: 18rem;">
+                <div class="card-body">
+                    <h5 class="card-title">Your Order:</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">Customer Name: @orderModel.CustomerName</h6>
+                    <h6 class="card-subtitle mb-2 text-muted">Coffee: @db.GetCoffee(int.Parse(orderModel.SelectedCoffee)).ItemName</h6>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Addons</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var adn in addonsSelected)
+                            {
+                                <tr>
+                                    <td>@adn.ItemName</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <h3>Bill: $@(getTotal() - getDiscount())</h3>
+                    <button @onclick="ClearOrder" class="btn btn-outline-danger">Clear Order</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    private int status = 0;
+
+    [Parameter]
+    public int userType { get; set; }
+    private string selectedAddon { get; set; }
+    private DatabaseContext db = DatabaseContext.getInstance();
+
+    private OrderModel orderModel = new OrderModel();
+    private List<Item> addonsSelected = new List<Item>();
+    private List<Item> coffeeOpt;
+    private List<Item> addonsOpt;
+
+
+    protected override void OnInitialized()
+    {
+        coffeeOpt = db.GetCoffee(); // load coffees
+        addonsOpt = db.GetAddons(); // load addons
+        ClearOrder();
+    }
+
+    private void PlaceOrder()
+    {
+        // Redirects to payment compenents
+        status = 1;
+        orderModel.PhoneNumber = "";
+    }
+
+    private void CompleteOrder()
+    {
+        // After payment complete the order
+        List<Order> ord = db.GetOrders();
+        int orderid = 1;
+        if (ord != null && ord.Count > 0)
+            orderid = ord[ord.Count - 1].Id + 1;
+        string oitem = db.GetCoffee(int.Parse(orderModel.SelectedCoffee)).ItemName;
+        foreach (var addon in addonsSelected) { oitem += "+" + addon.ItemName; }
+        db.addOrder(new Order(orderid, orderModel.CustomerName, orderModel.PhoneNumber, oitem, DateTime.Now, getTotal(), getDiscount(), getTotal() - getDiscount()));
+        db.saveOrders();
+        ClearOrder();
+    }
+
+    // Add addons to the order
+    private void AddAddon()
+    {
+        if (selectedAddon != "Choose...")
+            addonsSelected.Add(db.GetAddon(int.Parse(selectedAddon)));
+    }
+
+    // Calculate total bill
+    private float getTotal()
+    {
+        float total = 0;
+        Item selectedCoffee = db.GetCoffee(int.Parse(orderModel.SelectedCoffee));
+        if (selectedCoffee != null)
+            total += selectedCoffee.ItemPrice;
+
+        foreach (var itm in addonsSelected)
+        {
+            total += itm.ItemPrice;
+        }
+        return total;
+    }
+
+    // calculate discount
+    private float getDiscount()
+    {
+        float total = 0;
+        DateTime startDate = DateTime.Now.AddMonths(-1);
+        DateTime endDate = DateTime.Now;
+        List<Order> customerOrders = new List<Order>();
+        List<Member> members = db.GetMembers();
+        foreach (var mem in members)
+        {
+            if (mem.PhoneNumber == orderModel.PhoneNumber)
+            {
+                foreach (var ord in db.GetOrders())
+                {
+                    if (ord.PhoneNumber == orderModel.PhoneNumber)
+                    {
+                        customerOrders.Add(ord);
+                    }
+                }
+                if (customerOrders.Count % 10 == 0)
+                {
+                    return getTotal();
+                } else
+                {
+                    customerOrders.Clear();
+                }
+            }
+        }
+
+        foreach (var ord in db.GetOrders())
+        {
+            if (ord.PhoneNumber == orderModel.PhoneNumber &&
+            ord.Date >= startDate &&
+            ord.Date <= endDate)
+            {
+                customerOrders.Add(ord);
+            }
+        }
+
+        if (customerOrders.Count >= 22)
+        {
+            return getTotal() * 0.1f;
+        }
+
+        return total;
+    }
+
+    // clear order
+    private void ClearOrder()
+    {
+        status = 0;
+        orderModel.CustomerName = "";
+        orderModel.SelectedCoffee = coffeeOpt[0].Id.ToString();
+        orderModel.PhoneNumber = "0000000000";
+        addonsSelected.Clear();
+    }
+
+    public class OrderModel
+    {
+        [Required(ErrorMessage = "Customer Name is required!")]
+        public string CustomerName { get; set; }
+        [Required(ErrorMessage = "Phone Number is required!")]
+        [RegularExpression(@"^\d{10}$", ErrorMessage = "Phone Number must be 10 digits.")]
+        public string PhoneNumber { get; set; }
+        [Required(ErrorMessage = "Choose your Coffee!")]
+        public string SelectedCoffee { get; set; }
+    }
+}

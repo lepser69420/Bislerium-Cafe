@@ -1,0 +1,82 @@
+﻿@page "/members"
+@using System.ComponentModel.DataAnnotations;
+@using CafeCoffee.Components.Data;
+
+<h1>Members</h1>
+
+<div class="container">
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            @errorMessage
+        </div>
+    }
+    <form class="form-inline">
+        <div class="form-group mb-2">
+            <label for="phoneNumber">Member Phone Number</label>
+            <InputText type="text" @bind-Value="PhoneNumber" class="form-control" id="phoneNumber" />
+        </div>
+        <button type="button" @onclick="AddMember" class="btn btn-primary mb-2">Add Member</button>
+    </form>
+
+
+    @if (members != null && members.Count > 0)
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Phone Number</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var mem in members)
+                {
+                    <tr>
+                        <td>@mem.Id</td>
+                        <td>@mem.PhoneNumber</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <h4>No Members</h4>
+    }
+</div>
+
+@code {
+    [Required(ErrorMessage = "Phone Number is required!")]
+    private string PhoneNumber { get; set; }
+    private string errorMessage { get; set; }
+    List<Member> members;
+    DatabaseContext db;
+
+    protected override void OnInitialized()
+    {
+        db = DatabaseContext.getInstance();
+        members = db.GetMembers();
+    }
+
+    // Add a new member
+    private void AddMember()
+    {
+        List<Member> mem = db.GetMembers();
+        // Check if member already exists
+        foreach (var m in mem)
+        {
+            if (m.PhoneNumber == PhoneNumber)
+            {
+                errorMessage = "Member Already Exists!";
+                return;
+            }
+        }
+
+        int id = 1;
+        if (mem != null && mem.Count > 0)
+            id = mem[mem.Count - 1].Id + 1;
+        db.addMember(new Member(id, PhoneNumber));
+        errorMessage = "";
+    }
+}

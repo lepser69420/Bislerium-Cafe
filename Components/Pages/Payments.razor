@@ -1,0 +1,77 @@
+@page "/payments"
+@using CafeCoffee.Components.Data;
+
+<h1>Payments</h1>
+
+<div class="container">
+    @if (orders != null && orders.Count > 0)
+    {
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-success" role="alert">
+                @errorMessage
+            </div>
+        }
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Customer Name</th>
+                    <th scope="col">Phone</th>
+                    <th scope="col">Date</th>
+                    <th scope="col">Total Bill</th>
+                    <th scope="col">Discount</th>
+                    <th scope="col">Total Paid</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var order in orders)
+                {
+                    <tr>
+                        <td>@order.Id</td>
+                        <td>@order.CustomerName</td>
+                        <td>@order.PhoneNumber</td>
+                        <td>@order.Date.ToString("yyyy-MM-dd")</td>
+                        <td>$@order.TotalBill</td>
+                        <td>$@order.Discount</td>
+                        <td>$@(order.TotalPaid - order.Discount)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <button type="button" @onclick="DailyReport" class="btn btn-primary mb-2">Download Daily Report</button>
+        <button type="button" @onclick="MonthlyReport" class="btn btn-primary mb-2">Download Monthly Report</button>
+    }
+    else
+    {
+        <h4>No Payments</h4>
+    }
+</div>
+
+
+
+
+
+@code {
+    private string errorMessage { get; set; }
+    // Load orders from database
+    List<Order> orders = DatabaseContext.getInstance().GetOrders();
+
+
+    private void MonthlyReport()
+    {
+        string pdfFilePath = $"D:\\Application Development CW\\21049948 Tekraj Dhimal\\Bislerium Cafe\\Resources\\Raw\\{DateTime.Now.ToString("yy - mm - dd_ffff")}_monthly_report.pdf";
+        PdfGenerator.GenerateMonthlySalesReport(orders, pdfFilePath);
+        errorMessage = $"Report Downloaded to path {pdfFilePath}";
+    }
+
+    private void DailyReport()
+    {
+        string pdfFilePath = $"D:\\Application Development CW\\21049948 Tekraj Dhimal\\Bislerium Cafe\\Resources\\Raw\\{DateTime.Now.ToString("yy - mm - dd_ffff")}_daily_report.pdf"; 
+        PdfGenerator.GenerateDailySalesReport(orders, pdfFilePath);
+        errorMessage = $"Report Downloaded to path {pdfFilePath}";
+    }
+
+}

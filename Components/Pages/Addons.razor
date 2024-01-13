@@ -1,0 +1,101 @@
+﻿@page "/addons"
+@using System.ComponentModel.DataAnnotations;
+@using CafeCoffee.Components.Data;
+
+<h1>Addons</h1>
+
+<div class="container">
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            @errorMessage
+        </div>
+    }
+    <form class="form-check-inline">
+        <div class="d-flex mb-2">
+            <div class="form-group me-2">
+                <label for="itemName">Item Name</label>
+                <InputText type="text" @bind-Value="ItemName" class="form-control" id="itemName" />
+            </div>
+            <div class="form-group">
+                <label for="itemPrice">Price</label>
+                <InputText type="text" @bind-Value="ItemPrice" class="form-control" id="itemPrice" />
+            </div>
+        </div>
+        <button type="button" @onclick="AddAddon" class="btn btn-primary mb-2">Add Item</button>
+    </form>
+
+
+    @if (addons != null && addons.Count > 0)
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">Id</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Price</th>
+                    <th scope="col">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var adn in addons)
+                {
+                    <tr>
+                        <td>@adn.Id</td>
+                        <td>@adn.ItemName</td>
+                        <td>$@adn.ItemPrice</td>
+                        <td><button @onclick="() => DeleteItem(adn.Id)" class="btn btn-danger" value="@adn.Id">Delete</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <h4>No Addons</h4>
+    }
+</div>
+
+@code {
+    [Required(ErrorMessage = "Phone Number is required!")]
+    private string ItemName { get; set; }
+    private string ItemPrice { get; set; }
+    private string errorMessage { get; set; }
+    List<Item> addons;
+    DatabaseContext db;
+
+    protected override void OnInitialized()
+    {
+        db = DatabaseContext.getInstance();
+        addons = db.GetAddons(); // Load addons
+    }
+
+    // Add a new addon
+    private void AddAddon()
+    {
+        List<Item> items = db.GetAddons();
+        foreach (var itm in items)
+        {
+            if (itm.ItemName == ItemName)
+            {
+                errorMessage = "Item Already Exists!";
+                return;
+            }
+        }
+
+        int id = 1;
+        if (items != null && items.Count > 0)
+            id = items[items.Count - 1].Id + 1;
+        db.addAddon(new Item(id, ItemName, float.Parse(ItemPrice)));
+        errorMessage = "";
+    }
+
+    // Delete an addon
+    private void DeleteItem(int id)
+    {
+        if(!db.deleteAddon(id))
+        {
+            errorMessage = "Delete Failed!";
+        }
+    }
+}

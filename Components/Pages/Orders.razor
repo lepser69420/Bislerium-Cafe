@@ -1,0 +1,48 @@
+@page "/orders"
+@using CafeCoffee.Components.Data;
+
+<h1>Orders</h1>
+
+<div class="container">
+    @if (orders != null && orders.Count > 0)
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Customer Name</th>
+                    <th scope="col">Phone</th>
+                    <th scope="col">Order</th>
+                    <th scope="col">Date</th>
+                    <th scope="col">Payment</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var order in orders)
+                {
+                    <tr>
+                        <td>@order.Id</td>
+                        <td>@order.CustomerName</td>
+                        <td>@order.PhoneNumber</td>
+                        <td style="max-width: 200px;">@order.OrderItem</td>
+                        <td>@order.Date.ToString("yyyy-MM-dd")</td>
+                        <td>$@(order.TotalPaid - order.Discount)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <h4>No Orders</h4>
+    }
+</div>
+
+
+
+
+
+@code {
+    // Load orders from database
+    List<Order> orders = DatabaseContext.getInstance().GetOrders();
+}

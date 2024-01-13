@@ -1,0 +1,90 @@
+@page "/"
+@page "/login"
+@inject NavigationManager NavManager;
+@layout Layout.LoginLayout;
+@using CafeCoffee.Components.Data;
+
+<style>
+    body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+        background: #8b53ff;
+    }
+</style>
+
+<div class="container">
+
+    <div class="container-fluid mb-3">
+        <img width="250" height="200" src="icon_rounded.png" />
+    </div>
+
+    <EditForm Model="@user" OnValidSubmit="@LoginUser">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="form-group alert alert-danger" role="alert">
+                @errorMessage
+            </div>
+        }
+        <div class="form-group mb-3">
+            <label for="userName">Username</label>
+            <InputText type="text" @bind-Value="user.UserName" class="form-control" id="userName" />
+        </div>
+        <div class="form-group mb-3">
+            <label for="userPassword">Password</label>
+            <InputText type="password" @bind-Value="user.UserPassword" class="form-control" id="userPassword" />
+        </div>
+        <button type="submit" class="btn btn-primary mt-2">Login</button>
+    </EditForm>
+</div>
+
+@code {
+    private User user { get; set; }
+    private string errorMessage;
+
+    protected override void OnInitialized()
+    {
+        user = new User();
+    }
+
+    // Process Login User
+    private void LoginUser()
+    {
+        errorMessage = "";
+        DatabaseContext db = DatabaseContext.getInstance();
+        List<User> users = db.GetUsers();
+
+        bool loginSuccessful = false;
+
+        // Check if user exists and correct credentials
+        if (users != null)
+        {
+            foreach (var usr in users)
+            {
+                if (usr.UserName == user.UserName && usr.UserPassword == user.UserPassword)
+                {
+                    loginSuccessful = true;
+                    user.UserType = usr.UserType;
+                    break;
+                }
+            }
+        }
+
+        // Take actions if loggedin or not
+        if (loginSuccessful)
+        {
+            db.SetCurrentUser(user.UserType);
+            NavManager.NavigateTo("/home/" + user.UserType.ToString()); // Goto home page
+        }
+        else
+        {
+            errorMessage = "Invalid username or password. Please try again."; // Show error
+        }
+
+        user = new User();
+    }
+}
